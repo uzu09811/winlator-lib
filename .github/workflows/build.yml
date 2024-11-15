@@ -11,11 +11,14 @@ jobs:
     - name: Setup
       run: |
         sudo apt update && sudo apt install -y libarchive-tools wget
+        
     - name: checkout
       uses: actions/checkout@v4
       with:
         ref: main
         submodules: recursive
+        lfs: true
+        
     - name: Setup gradle
       uses: gradle/wrapper-validation-action@v2
       
@@ -35,12 +38,6 @@ jobs:
 
           restore-keys: |
             ${{ runner.os }}-gradle-
-
-    - name: Setup imagefs
-      run: |
-        rm -rf app/src/main/assets/imagefs.txz 
-        wget -P app/src/main/assets \
-        https://raw.githubusercontent.com/longjunyu2/winlator/main/app/src/main/assets/imagefs.txz
 
     - name: Build
       run: chmod +x ./gradlew && ./gradlew assembleDebug
