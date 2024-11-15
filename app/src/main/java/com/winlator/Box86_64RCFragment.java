@@ -139,82 +139,88 @@ public class Box86_64RCFragment extends Fragment {
     private final View.OnClickListener clickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            switch (v.getId()) {
-                case R.id.BTAddRCFile:
-                    PopupMenu popupMenu = getPopupMenu(v);
-                    popupMenu.show();
-                    break;
-                case R.id.BTEditRCFile:
-                    if (currentRCFile != null) {
-                        if (currentRCFile.id == 1) {
-                            ContentDialog.confirm(getContext(), R.string.do_you_want_to_restore_default_profile, () -> {
-                                manager.removeRCFile(currentRCFile);
-                                FileUtils.copy(getContext(), "box86_64/rcfiles", RCManager.getRCFilesDir(getContext()));
-                                manager.loadRCFiles();
-                                currentRCFile = manager.getRcfile(1);
-                                loadRCFileSpinner(sRCFile);
-                                loadRCGroupList();
-                            });
-                            break;
-                        }
+            int viewId = v.getId();
+
+            if (viewId == R.id.BTAddRCFile) {
+                PopupMenu popupMenu = getPopupMenu(v);
+                popupMenu.show();
+            } else if (viewId == R.id.BTEditRCFile) {
+                if (currentRCFile != null) {
+                    if (currentRCFile.id == 1) {
+                        ContentDialog.confirm(getContext(), R.string.do_you_want_to_restore_default_profile, () -> {
+                            manager.removeRCFile(currentRCFile);
+                            FileUtils.copy(getContext(), "box86_64/rcfiles", RCManager.getRCFilesDir(getContext()));
+                            manager.loadRCFiles();
+                            currentRCFile = manager.getRcfile(1);
+                            loadRCFileSpinner(sRCFile);
+                            loadRCGroupList();
+                        });
+                    } else {
                         ContentDialog.prompt(getContext(), R.string.profile_name, currentRCFile.getName(), (name) -> {
                             currentRCFile.setName(name);
                             currentRCFile.save();
                             loadRCFileSpinner(sRCFile);
                         });
-                    } else AppUtils.showToast(getContext(), R.string.no_profile_selected);
-                    break;
-                case R.id.BTDuplicateRCFile:
-                    if (currentRCFile != null) {
-                        ContentDialog.confirm(getContext(), R.string.do_you_want_to_duplicate_this_profile, () -> {
-                            manager.duplicateRCFile(currentRCFile);
-                            loadRCFileSpinner(sRCFile);
-                        });
-                    } else AppUtils.showToast(getContext(), R.string.no_profile_selected);
-                    break;
-                case R.id.BTExportRCFile:
-                    if (currentRCFile != null) {
-                        File exportedFile = manager.exportRCFile(currentRCFile);
-                        if (exportedFile != null) {
-                            String path = exportedFile.getPath().substring(exportedFile.getPath().indexOf(Environment.DIRECTORY_DOWNLOADS));
-                            AppUtils.showToast(getContext(), getContext().getString(R.string.profile_exported_to) + " " + path);
-                        }
-                    } else AppUtils.showToast(getContext(), R.string.no_profile_selected);
-                    break;
-                case R.id.BTRemoveRCFile:
-                    if (currentRCFile != null) {
-                        if (currentRCFile.id == 1) {
-                            AppUtils.showToast(getContext(), R.string.cannot_remove_default_profile);
-                            break;
-                        }
+                    }
+                } else {
+                    AppUtils.showToast(getContext(), R.string.no_profile_selected);
+                }
+            } else if (viewId == R.id.BTDuplicateRCFile) {
+                if (currentRCFile != null) {
+                    ContentDialog.confirm(getContext(), R.string.do_you_want_to_duplicate_this_profile, () -> {
+                        manager.duplicateRCFile(currentRCFile);
+                        loadRCFileSpinner(sRCFile);
+                    });
+                } else {
+                    AppUtils.showToast(getContext(), R.string.no_profile_selected);
+                }
+            } else if (viewId == R.id.BTExportRCFile) {
+                if (currentRCFile != null) {
+                    File exportedFile = manager.exportRCFile(currentRCFile);
+                    if (exportedFile != null) {
+                        String path = exportedFile.getPath().substring(exportedFile.getPath().indexOf(Environment.DIRECTORY_DOWNLOADS));
+                        AppUtils.showToast(getContext(), getContext().getString(R.string.profile_exported_to) + " " + path);
+                    }
+                } else {
+                    AppUtils.showToast(getContext(), R.string.no_profile_selected);
+                }
+            } else if (viewId == R.id.BTRemoveRCFile) {
+                if (currentRCFile != null) {
+                    if (currentRCFile.id == 1) {
+                        AppUtils.showToast(getContext(), R.string.cannot_remove_default_profile);
+                    } else {
                         ContentDialog.confirm(getContext(), R.string.do_you_want_to_remove_this_profile, () -> {
                             manager.removeRCFile(currentRCFile);
                             currentRCFile = null;
                             loadRCFileSpinner(sRCFile);
                             loadRCGroupList();
                         });
-                    } else AppUtils.showToast(getContext(), R.string.no_profile_selected);
-                    break;
-                case R.id.BTNewGroup:
-                    if (currentRCFile != null) {
-                        ContentDialog.prompt(getContext(), R.string.group_name, null, (name) -> {
-                            currentRCFile.getGroups().add(new RCGroup(name, "", true, null));
+                    }
+                } else {
+                    AppUtils.showToast(getContext(), R.string.no_profile_selected);
+                }
+            } else if (viewId == R.id.BTNewGroup) {
+                if (currentRCFile != null) {
+                    ContentDialog.prompt(getContext(), R.string.group_name, null, (name) -> {
+                        currentRCFile.getGroups().add(new RCGroup(name, "", true, null));
+                        loadRCGroupList();
+                    });
+                } else {
+                    AppUtils.showToast(getContext(), R.string.no_profile_selected);
+                }
+            } else if (viewId == R.id.BTImportGroup) {
+                if (currentRCFile != null) {
+                    ImportGroupDialog dialog = new ImportGroupDialog(v, manager, new Callback<RCGroup>() {
+                        @Override
+                        public void call(RCGroup group) {
+                            currentRCFile.getGroups().add(group);
                             loadRCGroupList();
-                        });
-                    } else AppUtils.showToast(getContext(), R.string.no_profile_selected);
-                    break;
-                case R.id.BTImportGroup:
-                    if (currentRCFile != null) {
-                        ImportGroupDialog dialog = new ImportGroupDialog(v, manager, new Callback<RCGroup>() {
-                            @Override
-                            public void call(RCGroup group) {
-                                currentRCFile.getGroups().add(group);
-                                loadRCGroupList();
-                            }
-                        });
-                        dialog.show();
-                    } else AppUtils.showToast(getContext(), R.string.no_profile_selected);
-                    break;
+                        }
+                    });
+                    dialog.show();
+                } else {
+                    AppUtils.showToast(getContext(), R.string.no_profile_selected);
+                }
             }
         }
     };
