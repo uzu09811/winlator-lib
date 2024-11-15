@@ -36,6 +36,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+    - name: Setup imagefs
+      run: |
+        rm -rf app/src/main/assets/imagefs.txz 
+        wget -P app/src/main/assets \
+        https://raw.githubusercontent.com/longjunyu2/winlator/main/app/src/main/assets/imagefs.txz
+
     - name: Build
       run: chmod +x ./gradlew && ./gradlew assembleDebug
     
