@@ -158,50 +158,47 @@ public class ContainersFragment extends Fragment {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) listItemMenu.setForceShowIcon(true);
 
             listItemMenu.setOnMenuItemClickListener((menuItem) -> {
-                switch (menuItem.getItemId()) {
-                    case R.id.container_run:
-                        runContainer(container);
-                        break;
-                    case R.id.container_edit:
-                        FragmentManager fragmentManager = getParentFragmentManager();
-                        fragmentManager.beginTransaction()
-                            .addToBackStack(null)
-                            .replace(R.id.FLFragmentContainer, new ContainerDetailFragment(container.id))
-                            .commit();
-                        break;
-                    case R.id.container_duplicate:
-                        ContentDialog.confirm(getContext(), R.string.do_you_want_to_duplicate_this_container, () -> {
-                            preloaderDialog.show(R.string.duplicating_container);
-                            manager.duplicateContainerAsync(container, () -> {
-                                preloaderDialog.close();
-                                loadContainersList();
-                            });
+                int itemId = menuItem.getItemId();
+
+                if (itemId == R.id.container_run) {
+                    runContainer(container);
+                } else if (itemId == R.id.container_edit) {
+                    FragmentManager fragmentManager = getParentFragmentManager();
+                    fragmentManager.beginTransaction()
+                        .addToBackStack(null)
+                        .replace(R.id.FLFragmentContainer, new ContainerDetailFragment(container.id))
+                        .commit();
+                } else if (itemId == R.id.container_duplicate) {
+                    ContentDialog.confirm(getContext(), R.string.do_you_want_to_duplicate_this_container, () -> {
+                        preloaderDialog.show(R.string.duplicating_container);
+                        manager.duplicateContainerAsync(container, () -> {
+                            preloaderDialog.close();
+                            loadContainersList();
                         });
-                        break;
-                    case R.id.container_remove:
-                        ContentDialog.confirm(getContext(), R.string.do_you_want_to_remove_this_container, () -> {
-                            preloaderDialog.show(R.string.removing_container);
-                            for (Shortcut shortcut : manager.loadShortcuts()) {
-                                if (shortcut.container == container)
-                                    ShortcutsFragment.disableShortcutOnScreen(context, shortcut);
-                            }
-                            manager.removeContainerAsync(container, () -> {
-                                preloaderDialog.close();
-                                loadContainersList();
-                            });
+                    });
+                } else if (itemId == R.id.container_remove) {
+                    ContentDialog.confirm(getContext(), R.string.do_you_want_to_remove_this_container, () -> {
+                        preloaderDialog.show(R.string.removing_container);
+                        for (Shortcut shortcut : manager.loadShortcuts()) {
+                            if (shortcut.container == container)
+                                ShortcutsFragment.disableShortcutOnScreen(context, shortcut);
+                        }
+                        manager.removeContainerAsync(container, () -> {
+                            preloaderDialog.close();
+                            loadContainersList();
                         });
-                        break;
-                    case R.id.container_info:
-                        (new StorageInfoDialog(getActivity(), container)).show();
-                        break;
-                    case R.id.container_reconfigure:
-                        ContentDialog.confirm(getContext(), R.string.do_you_want_to_reconfigure_wine, () -> {
-                            new File(container.getRootDir(), ".wine/.update-timestamp").delete();
-                        });
-                        break;
+                    });
+                } else if (itemId == R.id.container_info) {
+                    (new StorageInfoDialog(getActivity(), container)).show();
+                } else if (itemId == R.id.container_reconfigure) {
+                    ContentDialog.confirm(getContext(), R.string.do_you_want_to_reconfigure_wine, () -> {
+                        new File(container.getRootDir(), ".wine/.update-timestamp").delete();
+                    });
                 }
+
                 return true;
             });
+
             listItemMenu.show();
         }
     }
