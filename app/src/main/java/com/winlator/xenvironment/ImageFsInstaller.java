@@ -42,7 +42,7 @@ public abstract class ImageFsInstaller {
         }
     }
 
-    public static void installFromAssets(final MainActivity activity) {
+    public static void installFromAssets(final AppCompatActivity activity) {
         AppUtils.keepScreenOn(activity);
         ImageFs imageFs = ImageFs.find(activity);
         final File rootDir = imageFs.getRootDir();
@@ -76,7 +76,7 @@ public abstract class ImageFsInstaller {
         });
     }
 
-    public static void installIfNeeded(final MainActivity activity) {
+    public static void installIfNeeded(final AppCompatActivity activity) {
         ImageFs imageFs = ImageFs.find(activity);
         if (!imageFs.isValid() || imageFs.getVersion() < LATEST_VERSION) installFromAssets(activity);
     }
