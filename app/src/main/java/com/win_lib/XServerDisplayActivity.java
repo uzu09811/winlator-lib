@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.util.Log
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -274,6 +275,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                     preloaderDialog.closeOnUiThread();
                     winStarted[0] = true;
                 }
+                Log.w("WindowDebug", "Window ID: " + window.id + ", Type: " + window.type + ", Is Application Window: " + window.isApplicationWindow() + ", Is Wine Started: " + winStarted[0]);
 
                 if (window.id == frameRatingWindowId) frameRating.update();
             }
