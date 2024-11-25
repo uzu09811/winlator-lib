@@ -275,7 +275,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                     preloaderDialog.closeOnUiThread();
                     winStarted[0] = true;
                 }
-                Log.w("WindowDebug", "Window ID: " + window.id + ", Type: " + window.type + ", Is Application Window: " + window.isApplicationWindow() + ", Is Wine Started: " + winStarted[0]);
+                Log.w("WindowDebug", "Window ID: " + window.id + ", Is Application Window: " + window.isApplicationWindow() + ", Is Wine Started: " + winStarted[0]);
 
                 if (window.id == frameRatingWindowId) frameRating.update();
             }
