@@ -1,6 +1,7 @@
 name: Winlator-apk
 
 on:
+  push:
   workflow_dispatch:
 
 jobs:
