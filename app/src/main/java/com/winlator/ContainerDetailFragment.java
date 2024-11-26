@@ -339,6 +339,7 @@ public class ContainerDetailFragment extends Fragment {
                     data.put("wineVersion", sWineVersion.getSelectedItem().toString());
 
                     preloaderDialog.show(R.string.creating_container);
+                    Log.w("DataLog", data.toString());
                     manager.createContainerAsync(data, (container) -> {
                         if (container != null) {
                             this.container = container;
@@ -382,6 +383,7 @@ public class ContainerDetailFragment extends Fragment {
 
             registryEditor.setStringValue("Software\\Wine\\Direct3D", "shader_backend", "glsl");
             registryEditor.setStringValue("Software\\Wine\\Direct3D", "UseGLSL", "enabled");
+            Log.w("WineRegistryLog", "CSMT: " + sCSMT.getSelectedItemPosition().toString() + ", OffScreenRenderingMode: " + sOffscreenRenderingMode.getSelectedItem().toString().toLowerCase(Locale.ENGLISH) + ", strict_shader_math: " + sStrictShaderMath.getSelectedItemPosition().toString() + ", VideoMemorySize: " + StringUtils.parseNumber(sVideoMemorySize.getSelectedItem()) + ", MouseWarpOverride: " + sMouseWarpOverride.getSelectedItem().toString().toLowerCase(Locale.ENGLISH));
         }
     }
 
