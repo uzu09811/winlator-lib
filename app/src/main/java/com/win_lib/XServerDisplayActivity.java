@@ -1042,30 +1042,35 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     private String getWineStartCommand() {
         File tempDir = new File(container.getRootDir(), ".wine/drive_c/windows/temp");
         FileUtils.clear(tempDir);
+        
+        String wineWindowsPath = new File(container.getRootDir(), ".wine/drive_c/windows").getAbsolutePath();
 
         String args = "";
         if (shortcut != null) {
             String execArgs = shortcut.getExtra("execArgs");
-            execArgs = !execArgs.isEmpty() ? " "+execArgs : "";
+            execArgs = !execArgs.isEmpty() ? " " + execArgs : "";
 
             if (shortcut.path.endsWith(".lnk")) {
-                args += "\""+shortcut.path+"\""+execArgs;
-            }
-            else {
+                args += "\"" + shortcut.path + "\"" + execArgs;
+            } else {
                 String exeDir = FileUtils.getDirname(shortcut.path);
                 String filename = FileUtils.getName(shortcut.path);
                 int dotIndex, spaceIndex;
                 if ((dotIndex = filename.lastIndexOf(".")) != -1 && (spaceIndex = filename.indexOf(" ", dotIndex)) != -1) {
-                    execArgs = filename.substring(spaceIndex+1)+execArgs;
+                    execArgs = filename.substring(spaceIndex + 1) + execArgs;
                     filename = filename.substring(0, spaceIndex);
                 }
-                args += "/dir "+exeDir.replace(" ", "\\ ")+" \""+filename+"\""+execArgs;
+                args += "/dir " + exeDir.replace(" ", "\\ ") + " \"" + filename + "\"" + execArgs;
             }
+        } else {
+            // Use wfm.exe as the default executable
+            args += "\"" + new File(wineWindowsPath, "wfm.exe").getAbsolutePath() + "\"";
         }
-        else args += "\"wfm.exe\"";
 
-        return "winhandler.exe "+args;
+        // Return the full winhandler command with an absolute path
+        return "\"" + new File(wineWindowsPath, "winhandler.exe").getAbsolutePath() + "\" " + args;
     }
+
 
     public XServer getXServer() {
         return xServer;
