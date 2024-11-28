@@ -496,83 +496,141 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     }
 
     private void setupXEnvironment() {
-        envVars.put("LC_ALL", lc_all);
-        envVars.put("MESA_DEBUG", "silent");
-        envVars.put("MESA_NO_ERROR", "1");
-        envVars.put("WINEPREFIX", imageFs.wineprefix);
+        try {
+            Log.w("setupXEnvironment", "Starting XEnvironment");
 
-        boolean enableWineDebug = preferences.getBoolean("enable_wine_debug", false);
-        String wineDebugChannels = preferences.getString("wine_debug_channels", SettingsFragment.DEFAULT_WINE_DEBUG_CHANNELS);
-        envVars.put("WINEDEBUG", enableWineDebug && !wineDebugChannels.isEmpty() ? "+"+wineDebugChannels.replace(",", ",+") : "-all");
+            // Set environment variables
+            envVars.put("LC_ALL", lc_all);
+            envVars.put("MESA_DEBUG", "silent");
+            envVars.put("MESA_NO_ERROR", "1");
+            envVars.put("WINEPREFIX", imageFs.wineprefix);
+            Log.w("setupXEnvironment", "Environment variables initialized: " + envVars.toString());
 
-        String rootPath = imageFs.getRootDir().getPath();
-        FileUtils.clear(imageFs.getTmpDir());
+            boolean enableWineDebug = preferences.getBoolean("enable_wine_debug", false);
+            String wineDebugChannels = preferences.getString("wine_debug_channels", SettingsFragment.DEFAULT_WINE_DEBUG_CHANNELS);
+            envVars.put("WINEDEBUG", enableWineDebug && !wineDebugChannels.isEmpty() 
+                                  ? "+" + wineDebugChannels.replace(",", ",+") 
+                                  : "-all");
+            Log.w("setupXEnvironment", "WINEDEBUG set to: " + envVars.get("WINEDEBUG"));
 
-        boolean usrGlibc = preferences.getBoolean("use_glibc", true);
-        GuestProgramLauncherComponent guestProgramLauncherComponent = usrGlibc
-                ? new GlibcProgramLauncherComponent(contentsManager, contentsManager.getProfileByEntryName(container.getWineVersion()))
+            String rootPath = imageFs.getRootDir().getPath();
+            Log.w("setupXEnvironment", "Root path: " + rootPath);
+        
+            FileUtils.clear(imageFs.getTmpDir());
+            Log.w("setupXEnvironment", "Temporary directory cleared.");
+
+            // Initialize launcher component
+            boolean usrGlibc = preferences.getBoolean("use_glibc", true);
+            GuestProgramLauncherComponent guestProgramLauncherComponent = usrGlibc
+                ? new GlibcProgramLauncherComponent(contentsManager, 
+                      contentsManager.getProfileByEntryName(container.getWineVersion()))
                 : new GuestProgramLauncherComponent();
+            Log.w("setupXEnvironment", "GuestProgramLauncherComponent initialized with GLIBC: " + usrGlibc);
 
-        if (container != null) {
-            if (container.getStartupSelection() == Container.STARTUP_SELECTION_AGGRESSIVE) winHandler.killProcess("services.exe");
+            if (container != null) {
+                Log.w("setupXEnvironment", "Container detected: " + container.toString());
 
-            boolean wow64Mode = container.isWoW64Mode();
-//            String guestExecutable = wineInfo.getExecutable(this, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand();
-            String guestExecutable = "wine explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand();
-            guestProgramLauncherComponent.setWoW64Mode(wow64Mode);
-            guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
+                if (container.getStartupSelection() == Container.STARTUP_SELECTION_AGGRESSIVE) {
+                    winHandler.killProcess("services.exe");
+                    Log.w("setupXEnvironment", "Killed 'services.exe' due to aggressive startup selection.");
+                }
 
-            envVars.putAll(container.getEnvVars());
-            if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"));
-            if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1");
+                boolean wow64Mode = container.isWoW64Mode();
+                Log.w("setupXEnvironment", "WoW64 Mode: " + wow64Mode);
 
-            ArrayList<String> bindingPaths = new ArrayList<>();
-            for (String[] drive : container.drivesIterator()) bindingPaths.add(drive[1]);
-            guestProgramLauncherComponent.setBindingPaths(bindingPaths.toArray(new String[0]));
-            guestProgramLauncherComponent.setBox86Preset(shortcut != null ? shortcut.getExtra("box86Preset", container.getBox86Preset()) : container.getBox86Preset());
-            guestProgramLauncherComponent.setBox64Preset(shortcut != null ? shortcut.getExtra("box64Preset", container.getBox64Preset()) : container.getBox64Preset());
+                String guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + getWineStartCommand();
+                Log.w("setupXEnvironment", "Guest executable: " + guestExecutable);
+
+                guestProgramLauncherComponent.setWoW64Mode(wow64Mode);
+                guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
+
+                envVars.putAll(container.getEnvVars());
+                Log.w("setupXEnvironment", "Container environment variables added: " + container.getEnvVars());
+                if (shortcut != null) {
+                    envVars.putAll(shortcut.getExtra("envVars"));
+                    Log.w("setupXEnvironment", "Shortcut environment variables added: " + shortcut.getExtra("envVars"));
+                }
+                if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1");
+
+                ArrayList<String> bindingPaths = new ArrayList<>();
+                for (String[] drive : container.drivesIterator()) {
+                    bindingPaths.add(drive[1]);
+                }
+                Log.w("setupXEnvironment", "Binding paths: " + bindingPaths);
+
+                guestProgramLauncherComponent.setBindingPaths(bindingPaths.toArray(new String[0]));
+                guestProgramLauncherComponent.setBox86Preset(shortcut != null 
+                    ? shortcut.getExtra("box86Preset", container.getBox86Preset()) 
+                    : container.getBox86Preset());
+                guestProgramLauncherComponent.setBox64Preset(shortcut != null 
+                    ? shortcut.getExtra("box64Preset", container.getBox64Preset()) 
+                    : container.getBox64Preset());
+            }
+
+            environment = new XEnvironment(this, imageFs);
+            Log.w("setupXEnvironment", "XEnvironment initialized.");
+
+            environment.addComponent(new SysVSharedMemoryComponent(xServer, 
+                UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH)));
+            Log.w("setupXEnvironment", "SysVSharedMemoryComponent added.");
+
+            environment.addComponent(new XServerComponent(xServer, 
+                UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.XSERVER_PATH)));
+            Log.w("setupXEnvironment", "XServerComponent added.");
+
+            environment.addComponent(new NetworkInfoUpdateComponent());
+            Log.w("setupXEnvironment", "NetworkInfoUpdateComponent added.");
+
+            if (audioDriver.equals("alsa")) {
+                envVars.put("ANDROID_ALSA_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.ALSA_SERVER_PATH);
+                envVars.put("ANDROID_ASERVER_USE_SHM", "true");
+                environment.addComponent(new ALSAServerComponent(
+                    UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.ALSA_SERVER_PATH)));
+                Log.w("setupXEnvironment", "ALSAServerComponent added.");
+            } else if (audioDriver.equals("pulseaudio")) {
+                envVars.put("PULSE_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.PULSE_SERVER_PATH);
+                environment.addComponent(new PulseAudioComponent(
+                    UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.PULSE_SERVER_PATH)));
+                Log.w("setupXEnvironment", "PulseAudioComponent added.");
+            }
+
+            if (graphicsDriver.startsWith("virgl")) {
+                environment.addComponent(new VirGLRendererComponent(xServer, 
+                    UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VIRGL_SERVER_PATH)));
+                Log.w("setupXEnvironment", "VirGLRendererComponent added.");
+            }
+
+            RCManager manager = new RCManager(this);
+            manager.loadRCFiles();
+            int rcfileId = shortcut == null 
+                ? container.getRCFileId() 
+                : Integer.parseInt(shortcut.getExtra("rcfileId", String.valueOf(container.getRCFileId())));
+            RCFile rcfile = manager.getRcfile(rcfileId);
+            File file = new File(container.getRootDir(), ".box64rc");
+            String str = rcfile == null ? "" : rcfile.generateBox86_64rc();
+            FileUtils.writeString(file, str);
+            envVars.put("BOX64_RCFILE", file.getAbsolutePath());
+            Log.w("setupXEnvironment", "RC file written: " + file.getAbsolutePath());
+
+            guestProgramLauncherComponent.setEnvVars(envVars);
+            guestProgramLauncherComponent.setTerminationCallback((status) -> finish());
+            environment.addComponent(guestProgramLauncherComponent);
+
+            if (isGenerateWineprefix()) generateWineprefix();
+            Log.w("setupXEnvironment", "Starting environment components...");
+            environment.startEnvironmentComponents();
+
+            winHandler.start();
+            Log.w("setupXEnvironment", "WinHandler started.");
+
+            envVars.clear();
+            dxwrapperConfig = null;
+            Log.w("setupXEnvironment", "Setup completed successfully.");
+        } catch (Exception e) {
+            Log.e("setupXEnvironment", "Error occurred: ", e);
         }
-
-        environment = new XEnvironment(this, imageFs);
-        environment.addComponent(new SysVSharedMemoryComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH)));
-        environment.addComponent(new XServerComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.XSERVER_PATH)));
-        environment.addComponent(new NetworkInfoUpdateComponent());
-
-        if (audioDriver.equals("alsa")) {
-            envVars.put("ANDROID_ALSA_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.ALSA_SERVER_PATH);
-            envVars.put("ANDROID_ASERVER_USE_SHM", "true");
-            environment.addComponent(new ALSAServerComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.ALSA_SERVER_PATH)));
-        }
-        else if (audioDriver.equals("pulseaudio")) {
-            envVars.put("PULSE_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.PULSE_SERVER_PATH);
-            environment.addComponent(new PulseAudioComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.PULSE_SERVER_PATH)));
-        }
-
-        if (graphicsDriver.startsWith("virgl")) {
-            environment.addComponent(new VirGLRendererComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VIRGL_SERVER_PATH)));
-        }
-
-        RCManager manager = new RCManager(this);
-        manager.loadRCFiles();
-        int rcfileId = shortcut == null ? container.getRCFileId() :
-                Integer.parseInt(shortcut.getExtra("rcfileId", String.valueOf(container.getRCFileId())));
-        RCFile rcfile = manager.getRcfile(rcfileId);
-        File file = new File(container.getRootDir(), ".box64rc");
-        String str = rcfile == null ? "" : rcfile.generateBox86_64rc();
-        FileUtils.writeString(file, str);
-        envVars.put("BOX64_RCFILE", file.getAbsolutePath());
-
-        guestProgramLauncherComponent.setEnvVars(envVars);
-        guestProgramLauncherComponent.setTerminationCallback((status) -> finish());
-        environment.addComponent(guestProgramLauncherComponent);
-
-        if (isGenerateWineprefix()) generateWineprefix();
-        environment.startEnvironmentComponents();
-
-        winHandler.start();
-        envVars.clear();
-        dxwrapperConfig = null;
     }
+    
 
     private void setupUI() {
         FrameLayout rootView = findViewById(R.id.FLXServerDisplay);
@@ -1042,35 +1100,30 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     private String getWineStartCommand() {
         File tempDir = new File(container.getRootDir(), ".wine/drive_c/windows/temp");
         FileUtils.clear(tempDir);
-        
-        String wineWindowsPath = new File(container.getRootDir(), ".wine/drive_c/windows").getAbsolutePath();
 
         String args = "";
         if (shortcut != null) {
             String execArgs = shortcut.getExtra("execArgs");
-            execArgs = !execArgs.isEmpty() ? " " + execArgs : "";
+            execArgs = !execArgs.isEmpty() ? " "+execArgs : "";
 
             if (shortcut.path.endsWith(".lnk")) {
-                args += "\"" + shortcut.path + "\"" + execArgs;
-            } else {
+                args += "\""+shortcut.path+"\""+execArgs;
+            }
+            else {
                 String exeDir = FileUtils.getDirname(shortcut.path);
                 String filename = FileUtils.getName(shortcut.path);
                 int dotIndex, spaceIndex;
                 if ((dotIndex = filename.lastIndexOf(".")) != -1 && (spaceIndex = filename.indexOf(" ", dotIndex)) != -1) {
-                    execArgs = filename.substring(spaceIndex + 1) + execArgs;
+                    execArgs = filename.substring(spaceIndex+1)+execArgs;
                     filename = filename.substring(0, spaceIndex);
                 }
-                args += "/dir " + exeDir.replace(" ", "\\ ") + " \"" + filename + "\"" + execArgs;
+                args += "/dir "+exeDir.replace(" ", "\\ ")+" \""+filename+"\""+execArgs;
             }
-        } else {
-            // Use wfm.exe as the default executable
-            args += "\"" + new File(wineWindowsPath, "wfm.exe").getAbsolutePath() + "\"";
         }
+        else args += "\"wfm.exe\"";
 
-        // Return the full winhandler command with an absolute path
-        return "\"" + new File(wineWindowsPath, "winhandler.exe").getAbsolutePath() + "\" " + args;
+        return "winhandler.exe "+args;
     }
-
 
     public XServer getXServer() {
         return xServer;
